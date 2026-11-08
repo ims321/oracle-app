@@ -10,21 +10,17 @@ import json
 load_dotenv()
 from system_prompt import SYSTEM_PROMPT
 
-app = FastAPI(title="ORACLE Backend", version="3.2.0")
+app = FastAPI(title="ORACLE Backend", version="3.3.0")
 
 print("Initializing Cloud Database and FastEmbed...")
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
-
-# Initialize FastEmbed (uses ONNX Runtime, only ~50MB RAM)
 embedder = TextEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
 print("Database and FastEmbed ready.")
 
 class AskRequest(BaseModel):
     question: str
 
 def get_embedding(text: str) -> list:
-    # FastEmbed returns a generator, we convert it to a list
     embeddings = list(embedder.embed([text]))
     return embeddings[0].tolist()
 
@@ -34,7 +30,8 @@ def retrieve(question: str, k_per_faith: int = 2) -> list:
         return []
         
     verses = []
-    faiths = ["Islam", "Christianity", "Judaism", "Buddhism", "Hindu traditions"]
+    # UPDATED FAITH LIST
+    faiths = ["Islam", "Christianity", "Judaism", "Buddhism", "Hindu traditions", "Stoicism", "Taoism"]
     
     for faith in faiths:
         try:
