@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from typing import List
 from dotenv import load_dotenv
 from supabase import create_client
 from fastembed import TextEmbedding
@@ -10,7 +11,7 @@ import json
 load_dotenv()
 from system_prompt import SYSTEM_PROMPT
 
-app = FastAPI(title="ORACLE Backend", version="4.0.0")
+app = FastAPI(title="ORACLE Backend", version="4.1.0")
 
 print("Initializing Cloud Database and FastEmbed...")
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
@@ -19,25 +20,20 @@ print("Database and FastEmbed ready.")
 
 class AskRequest(BaseModel):
     question: str
+    faiths: List[str]  # Now accepts an array of selected faiths
 
 def get_embedding(text: str) -> list:
     embeddings = list(embedder.embed([text]))
     return embeddings[0].tolist()
 
-def retrieve(question: str, k_per_faith: int = 2) -> list:
+def retrieve(question: str, selected_faiths: List[str], k_per_faith: int = 2) -> list:
     q_embedding = get_embedding(question)
     if not q_embedding:
         return []
         
     verses = []
-    # ALL 11 TRADITIONS
-    faiths = [
-        "Islam", "Christianity", "Judaism", "Buddhism", 
-        "Hindu traditions", "Stoicism", "Taoism", 
-        "Sikhism", "Confucianism", "Contemporary Teachers", "Swaminarayan"
-    ]
     
-    for faith in faiths:
+    for faith in selected_faiths:
         try:
             res = supabase.rpc('match_scriptures', {
                 'query_embedding': q_embedding,
@@ -94,7 +90,7 @@ def llm_answer(question: str, verses: list) -> dict:
 
 @app.post("/api/ask")
 def ask(req: AskRequest):
-    verses = retrieve(req.question)
+    verses = retrieve(req.question, req.faiths)
     
     if os.getenv("GROQ_API_KEY"):
         try:
