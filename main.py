@@ -80,7 +80,6 @@ def ask(req: AskRequest):
     verses = retrieve(req.question, req.faiths)
     if not verses:
         return {"universal_thread": None, "aligned_verses": [], "distinct_rationales": [], "insufficient_evidence": "No relevant passages found."}
-    
     try:
         return llm_answer(req.question, verses)
     except Exception as e:
