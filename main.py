@@ -4,38 +4,29 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from supabase import create_client
-from huggingface_hub import InferenceClient
+from fastembed import TextEmbedding
 import json
 
 load_dotenv()
 from system_prompt import SYSTEM_PROMPT
 
-app = FastAPI(title="ORACLE Backend", version="3.1.0")
+app = FastAPI(title="ORACLE Backend", version="3.2.0")
 
-print("Initializing Cloud Database and Hugging Face API...")
+print("Initializing Cloud Database and FastEmbed...")
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 
-# Initialize Hugging Face Inference Client
-hf_token = os.getenv("HUGGINGFACE_API_KEY")
-hf_client = InferenceClient(token=hf_token)
+# Initialize FastEmbed (uses ONNX Runtime, only ~50MB RAM)
+embedder = TextEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-print("Database and API ready.")
+print("Database and FastEmbed ready.")
 
 class AskRequest(BaseModel):
     question: str
 
 def get_embedding(text: str) -> list:
-    # Get the embedding from Hugging Face's cloud instead of local RAM
-    try:
-        # We use the same model you originally had, but via API
-        embedding = hf_client.feature_extraction(
-            text, 
-            model="sentence-transformers/all-MiniLM-L6-v2"
-        )
-        return embedding.tolist()
-    except Exception as e:
-        print(f"Embedding API Error: {e}")
-        return None
+    # FastEmbed returns a generator, we convert it to a list
+    embeddings = list(embedder.embed([text]))
+    return embeddings[0].tolist()
 
 def retrieve(question: str, k_per_faith: int = 2) -> list:
     q_embedding = get_embedding(question)

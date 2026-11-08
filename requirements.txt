@@ -3,5 +3,7 @@ uvicorn[standard]
 python-dotenv
 supabase
 openai
-huggingface_hub
+fastembed
+numpy
+pydantic
 requests
