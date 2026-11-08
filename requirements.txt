@@ -1,10 +1,10 @@
 fastapi
 uvicorn[standard]
 python-dotenv
-sentence-transformers
 supabase
 openai
+huggingface_hub
 numpy
 pydantic
-tqdm
 requests
+tqdm

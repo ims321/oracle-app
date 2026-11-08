@@ -3,29 +3,46 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
 from supabase import create_client
+from huggingface_hub import InferenceClient
 import json
 
 load_dotenv()
 from system_prompt import SYSTEM_PROMPT
 
-app = FastAPI(title="ORACLE Backend", version="3.0.0")
+app = FastAPI(title="ORACLE Backend", version="3.1.0")
 
-print("Initializing AI and Cloud Database...")
+print("Initializing Cloud Database and Hugging Face API...")
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
-embedder = SentenceTransformer('all-MiniLM-L6-v2')
-print("Cloud Database and AI ready.")
+
+# Initialize Hugging Face Inference Client
+hf_token = os.getenv("HUGGINGFACE_API_KEY")
+hf_client = InferenceClient(token=hf_token)
+
+print("Database and API ready.")
 
 class AskRequest(BaseModel):
     question: str
 
+def get_embedding(text: str) -> list:
+    # Get the embedding from Hugging Face's cloud instead of local RAM
+    try:
+        # We use the same model you originally had, but via API
+        embedding = hf_client.feature_extraction(
+            text, 
+            model="sentence-transformers/all-MiniLM-L6-v2"
+        )
+        return embedding.tolist()
+    except Exception as e:
+        print(f"Embedding API Error: {e}")
+        return None
+
 def retrieve(question: str, k_per_faith: int = 2) -> list:
-    # 1. Embed the user's question
-    q_embedding = embedder.encode([question]).tolist()[0]
-    
+    q_embedding = get_embedding(question)
+    if not q_embedding:
+        return []
+        
     verses = []
-    # 2. Query Supabase separately for each tradition
     faiths = ["Islam", "Christianity", "Judaism", "Buddhism", "Hindu traditions"]
     
     for faith in faiths:
@@ -52,9 +69,7 @@ def retrieve(question: str, k_per_faith: int = 2) -> list:
 def deterministic_answer(question: str, verses: list) -> dict:
     if not verses:
         return {"universal_thread": None, "aligned_verses": [], "distinct_rationales": [], "disagreements": [], "insufficient_evidence": "No relevant passages found.", "mode": "deterministic"}
-    
     faiths = list(set(v["faith"] for v in verses))
-    
     return {
         "universal_thread": f"Retrieved passages from {', '.join(faiths)} touch this question.",
         "aligned_verses": verses,
@@ -93,9 +108,7 @@ def ask(req: AskRequest):
         try:
             return llm_answer(req.question, verses)
         except Exception as e:
-            print("\n=== GROQ API ERROR ===")
-            print(str(e))
-            print("========================\n")
+            print(f"Groq Error: {e}")
             out = deterministic_answer(req.question, verses)
             out["llm_error"] = str(e)
             return out
