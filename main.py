@@ -31,10 +31,10 @@ def retrieve(question: str, k_per_faith: int = 2) -> list:
         
     verses = []
     # Updated list of all 10 traditions
-    faiths = [
+        faiths = [
         "Islam", "Christianity", "Judaism", "Buddhism", 
         "Hindu traditions", "Stoicism", "Taoism", 
-        "Sikhism", "Confucianism", "Contemporary Teachers"
+        "Sikhism", "Confucianism", "Contemporary Teachers", "Swaminarayan"
     ]
     
     for faith in faiths:
