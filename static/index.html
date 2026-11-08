@@ -63,16 +63,14 @@ summary{font-weight:600;color:var(--ac)}
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const ST={g(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const tg=()=>{const r=document.documentElement,d=getComputedStyle(r).colorScheme.includes("dark");r.dataset.theme=d?"light":"dark"};
-const PG=[["home","Home"],["ask","Ask Humanity"],["questions","Question Explorer"],["perspectives","Explore Perspectives"],["map","Connections"],["religions","Religions & Traditions"],["philosophy","Philosophy & Ideas"],["voices","Voices of Wisdom"],["culture","Culture & Human Knowledge"],["together","Living Together"],["journeys","Guided Journeys"],["dialogue","Dialogue Without Agreement"],["plans","Plans"],["about","About Oracle"]];
+const PG=[["home","Home"],["ask","Ask Humanity"],["learn","Learning Hub"],["questions","Question Explorer"],["perspectives","Explore Perspectives"],["map","Connections"],["religions","Religions & Traditions"],["philosophy","Philosophy & Ideas"],["voices","Voices of Wisdom"],["culture","Culture & Human Knowledge"],["together","Living Together"],["journeys","Guided Journeys"],["dialogue","Dialogue Without Agreement"],["plans","Plans"],["about","About Oracle"]];
 const FAITHS=["Islam", "Christianity", "Judaism", "Buddhism", "Hindu traditions", "Stoicism", "Taoism", "Sikhism", "Confucianism", "Contemporary Teachers", "Swaminarayan", "Latter-day Saints", "Jainism", "Bahá'í", "Indigenous Wisdom"];
-const CATS=["Understanding Religions","God and Existence","Life and Purpose","Consciousness and Spirituality","Morality and Human Behaviour","Death and the Afterlife","Culture and Humanity","Great Thinkers and Teachers"];
-
-let thread = []; // Keeps track of questions and answers
+let thread = [];
 
 const V={
 home(){return`<section class="hero"><div><h1>The World’s Knowledge. Humanity’s Perspectives.</h1><p class="lead">Explore the ideas, beliefs, traditions and wisdom that have shaped humanity. Discover what connects us, understand what distinguishes us, and learn to see the world through different perspectives.</p></div>
 <svg viewBox="0 0 300 300" role="img" aria-label="Seven distinct overlapping circles around a shared centre"><g style="mix-blend-mode:multiply" opacity=".8">${["#0e8a93","#d99a1e","#c2507a","#4f5fc4","#4a9a5b","#c46a2c","#7a54b0"].map((c,i)=>{const a=i/7*6.283;return`<circle cx="${150+Math.cos(a)*52}" cy="${150+Math.sin(a)*52}" r="70" fill="${c}" opacity=".55"/>`}).join("")}</g><circle cx="150" cy="150" r="9" fill="var(--ink)"/></svg></section>
-<div class="two"><button class="card big" onclick="location.hash='ask'"><h3>ASK HUMANITY</h3><p>An open conversational experience where you can ask questions about any aspect of human knowledge, beliefs, philosophy, spirituality or existence.</p></button><button class="card big alt" onclick="location.hash='questions'"><h3>EXPLORE QUESTIONS</h3><p>An interactive discovery experience that helps you find questions, ideas and subjects you may never have considered.</p></button></div>`},
+<div class="two"><button class="card big" onclick="location.hash='ask'"><h3>ASK HUMANITY</h3><p>An open conversational experience where you can ask questions about any aspect of human knowledge.</p></button><button class="card big alt" onclick="location.hash='learn'"><h3>LEARNING HUB</h3><p>Take a step-by-step deep dive into a specific tradition.</p></button></div>`},
 ask(){
   return`<h1 style="font-size:2.4rem">Ask Humanity</h1><p class="lead">Select the traditions you want to compare, and ask a question.</p>
   <div class="note"><b>Select Traditions to Compare:</b></div>
@@ -81,17 +79,15 @@ ask(){
     <button class="btn g" onclick="toggleAll(false)">✗ Deselect All</button>
   </div>
   <div class="checkbox-grid" id="checkbox-container">${FAITHS.map(f=>`<label class="checkbox-label"><input type="checkbox" class="faith-check" value="${f}" checked> ${f}</label>`).join("")}</div>
-  
-  <div style="margin-top:20px; margin-bottom: 20px;">
-    ${thread.map(t=>`<div class="q">${esc(t.q)}</div>${t.h}`).join("")}
-  </div>
-
-  <div class="card">
-    <textarea id="qi" placeholder="For example: What does it say about the nature of suffering?"></textarea>
-    <button class="btn" onclick="doAsk()">Ask AI</button>
-  </div>`
+  <div style="margin-top:20px; margin-bottom: 20px;">${thread.map(t=>`<div class="q">${esc(t.q)}</div>${t.h}`).join("")}</div>
+  <div class="card"><textarea id="qi" placeholder="For example: What does it say about the nature of suffering?"></textarea><button class="btn" onclick="doAsk()">Ask AI</button></div>`
 },
-questions(){return`<h1 style="font-size:2.4rem">Question Explorer</h1><p class="lead">Choose a category or a question to open a structured exploration.</p><div class="card"><p>Coming Soon.</p></div>`},
+learn(){
+  return`<h1 style="font-size:2.4rem">Learning Hub</h1><p class="lead">Choose a tradition to generate a 5-step learning curriculum.</p>
+  <div class="grid" id="faith-grid">${FAITHS.map(f=>`<button class="card" onclick="generateCurriculum('${f}')"><h3>${f}</h3><p style="margin:0">Explore the core teachings.</p></button>`).join("")}</div>
+  <div id="curriculum-out" style="margin-top:20px;"></div>`
+},
+questions(){return`<h1>Question Explorer</h1><div class="card"><p>Coming Soon.</p></div>`},
 perspectives(){return`<h1>Explore Perspectives</h1><div class="card"><p>Coming Soon.</p></div>`},
 map(){return`<h1>Connections</h1><div class="card"><p>Coming Soon.</p></div>`},
 religions(){return`<h1>Religions & Traditions</h1><div class="card"><p>Coming Soon.</p></div>`},
@@ -111,53 +107,70 @@ function toggleAll(state) {
 
 async function doAsk(){
     const q=$("#qi").value.trim(); if(!q) return;
-    
     const selected = Array.from(document.querySelectorAll('.faith-check:checked')).map(cb => cb.value);
     if(selected.length === 0) { alert("Please select at least one tradition."); return; }
 
-    // Save the question and a loading message to our thread
-    thread.push({q, h:'<p class="sub">Searching the Oracle AI database...</p>'});
-    render(); // Re-render to show the loading message immediately and clear the textarea
+    thread.push({q, h:'<p class="sub">Searching the Oracle AI database...</p>'}); render(); 
 
     try{
-        const res=await fetch("/api/ask",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({question:q, faiths:selected})
-        });
+        const res=await fetch("/api/ask",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({question:q, faiths:selected}) });
         if(!res.ok) throw new Error("Backend offline");
         const data=await res.json();
         
         let html=`<div class="box s"><h3>Universal thread</h3><p>${data.universal_thread||"No shared thread found."}</p></div>`;
-        
         if(data.aligned_verses&&data.aligned_verses.length>0){
             html+=`<details><summary>📖 View Aligned Verses (${data.aligned_verses.length})</summary>`;
-            data.aligned_verses.forEach(v=>{
-                let url = `https://www.google.com/search?q=${encodeURIComponent(v.faith + ' ' + v.citation)}`;
-                const c = v.citation.toLowerCase();
-                if (c.includes('quran')) { const m = v.citation.match(/(\d+):(\d+)/); if(m) url = `https://quran.com/${m[1]}/${m[2]}`; }
-                else if (c.includes('genesis') || c.includes('john') || c.includes('matthew')) { url = `https://www.biblegateway.com/passage/?search=${encodeURIComponent(v.citation)}`; }
-                else if (c.includes('gita')) { const m = v.citation.match(/(\d+):(\d+)/); if(m) url = `https://www.holy-bhagavad-gita.org/chapter/${m[1]}/verse/${m[2]}`; }
-                
-                html += `<p class="verse-item"><b>${v.faith} (<a href="${url}" target="_blank" style="color:var(--ac);">${v.citation}</a>):</b> “${v.text}”</p>`;
-            });
+            data.aligned_verses.forEach(v=>{ html += `<p class="verse-item"><b>${v.faith} (${v.citation}):</b> “${v.text}”</p>`; });
             html += `</details>`;
         }
-        
         if(data.distinct_rationales&&data.distinct_rationales.length>0){
             html+=`<details><summary>🧠 View Distinct Rationales</summary>`;
-            data.distinct_rationales.forEach(r=>{html+=`<p class="verse-item"><b>${r.faith}:</b> ${r.theological_logic}</p>`});
+            data.distinct_rationales.forEach(r=>{ html += `<p class="verse-item"><b>${r.faith}:</b> ${r.theological_logic}</p>`; });
             html+=`</details>`;
         }
-        
         if(data.insufficient_evidence){html+=`<p class="sub" style="color:var(--bd)"><b>Notice:</b> ${data.insufficient_evidence}</p>`}
-        
-        // Replace the loading message with the final answer
         thread[thread.length-1].h=html;
     }catch(err){
         thread[thread.length-1].h=`<p style="color:var(--bd)">Error: ${err.message}</p>`;
     }
-    render(); // Re-render to show the final answer
+    render();
+}
+
+async function generateCurriculum(faith) {
+    const out = $("#curriculum-out");
+    out.innerHTML = `<p class="sub">Generating curriculum for ${faith}...</p>`;
+    try {
+        const res = await fetch("/api/learn", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ faith: faith })
+        });
+        const data = await res.json();
+        
+        let html = `<h2>Learning ${data.tradition}</h2><p class="lead">${data.description}</p>`;
+        html += `<div class="grid">`;
+        data.curriculum.forEach(step => {
+            html += `<div class="card" style="cursor:pointer;" onclick="askStep('${data.tradition}', '${step.title}')">
+                <p class="sub">Step ${step.step}</p>
+                <h3>${step.title}</h3>
+                <p style="margin:0">${step.summary}</p>
+            </div>`;
+        });
+        html += `</div>`;
+        out.innerHTML = html;
+    } catch (e) {
+        out.innerHTML = `<p style="color:var(--bd)">Error generating curriculum: ${e.message}</p>`;
+    }
+}
+
+function askStep(tradition, title) {
+    // Redirect to Ask Humanity and pre-fill the question
+    location.hash = 'ask';
+    setTimeout(() => {
+        $("#qi").value = `Explain the concept of ${title} in ${tradition}.`;
+        // Uncheck all others, check only this one
+        document.querySelectorAll('.faith-check').forEach(cb => cb.checked = (cb.value === tradition));
+    }, 100);
 }
 
 function render(){const id=(location.hash||"#home").slice(1),p=V[id]?id:"home";$("#nv").innerHTML=PG.map(x=>`<a href="#${x[0]}" class="${x[0]===p?"on":""}">${x[1]}</a>`).join("");$("#m").innerHTML=V[p]()}

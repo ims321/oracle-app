@@ -11,7 +11,7 @@ import json
 load_dotenv()
 from system_prompt import SYSTEM_PROMPT
 
-app = FastAPI(title="ORACLE Backend", version="4.1.0")
+app = FastAPI(title="ORACLE Backend", version="5.0.0")
 
 print("Initializing Cloud Database and FastEmbed...")
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
@@ -20,7 +20,10 @@ print("Database and FastEmbed ready.")
 
 class AskRequest(BaseModel):
     question: str
-    faiths: List[str]  # Now accepts an array of selected faiths
+    faiths: List[str]
+
+class LearnRequest(BaseModel):
+    faith: str
 
 def get_embedding(text: str) -> list:
     embeddings = list(embedder.embed([text]))
@@ -32,7 +35,6 @@ def retrieve(question: str, selected_faiths: List[str], k_per_faith: int = 2) ->
         return []
         
     verses = []
-    
     for faith in selected_faiths:
         try:
             res = supabase.rpc('match_scriptures', {
@@ -54,19 +56,6 @@ def retrieve(question: str, selected_faiths: List[str], k_per_faith: int = 2) ->
             
     return verses
 
-def deterministic_answer(question: str, verses: list) -> dict:
-    if not verses:
-        return {"universal_thread": None, "aligned_verses": [], "distinct_rationales": [], "disagreements": [], "insufficient_evidence": "No relevant passages found.", "mode": "deterministic"}
-    faiths = list(set(v["faith"] for v in verses))
-    return {
-        "universal_thread": f"Retrieved passages from {', '.join(faiths)} touch this question.",
-        "aligned_verses": verses,
-        "distinct_rationales": [{"faith": f, "theological_logic": "Rationale requires an API key."} for f in faiths],
-        "disagreements": [{"issue": "Interpretation", "positions": "Not evaluated."}],
-        "insufficient_evidence": None,
-        "mode": "deterministic",
-    }
-
 def llm_answer(question: str, verses: list) -> dict:
     from openai import OpenAI
     client = OpenAI(
@@ -84,24 +73,49 @@ def llm_answer(question: str, verses: list) -> dict:
             {"role": "user", "content": f"Question: {question}\n\nRetrieved sources:\n{context}"},
         ],
     )
-    data = json.loads(resp.choices[0].message.content)
-    data["mode"] = "llm"
-    return data
+    return json.loads(resp.choices[0].message.content)
 
 @app.post("/api/ask")
 def ask(req: AskRequest):
     verses = retrieve(req.question, req.faiths)
+    if not verses:
+        return {"universal_thread": None, "aligned_verses": [], "distinct_rationales": [], "insufficient_evidence": "No relevant passages found."}
     
-    if os.getenv("GROQ_API_KEY"):
-        try:
-            return llm_answer(req.question, verses)
-        except Exception as e:
-            print(f"Groq Error: {e}")
-            out = deterministic_answer(req.question, verses)
-            out["llm_error"] = str(e)
-            return out
-            
-    return deterministic_answer(req.question, verses)
+    try:
+        return llm_answer(req.question, verses)
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/api/learn")
+def learn(req: LearnRequest):
+    from openai import OpenAI
+    client = OpenAI(
+        base_url="https://api.groq.com/openai/v1",
+        api_key=os.getenv("GROQ_API_KEY")
+    )
+    
+    prompt = f"""You are an expert professor of comparative religion. Create a 5-step learning curriculum for a student who wants to understand {req.faith}.
+    Return strict JSON with this structure:
+    {{
+        "tradition": "{req.faith}",
+        "description": "A 2-sentence overview of what this tradition is.",
+        "curriculum": [
+            {{"step": 1, "title": "Title of step 1", "summary": "1 sentence summary of what will be taught."}},
+            {{"step": 2, "title": "Title of step 2", "summary": "1 sentence summary of what will be taught."}},
+            {{"step": 3, "title": "Title of step 3", "summary": "1 sentence summary of what will be taught."}},
+            {{"step": 4, "title": "Title of step 4", "summary": "1 sentence summary of what will be taught."}},
+            {{"step": 5, "title": "Title of step 5", "summary": "1 sentence summary of what will be taught."}}
+        ]
+    }}
+    """
+    
+    resp = client.chat.completions.create(
+        model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
+        temperature=0.3,
+        response_format={"type": "json_object"},
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return json.loads(resp.choices[0].message.content)
 
 @app.get("/")
 def read_root():
