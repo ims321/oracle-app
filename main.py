@@ -11,7 +11,7 @@ import json
 load_dotenv()
 from system_prompt import SYSTEM_PROMPT
 
-app = FastAPI(title="ORACLE Backend", version="6.0.0")
+app = FastAPI(title="ORACLE Backend", version="6.1.0")
 
 print("Initializing Cloud Database and FastEmbed...")
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
@@ -23,6 +23,11 @@ class AskRequest(BaseModel):
 
 class LearnRequest(BaseModel):
     faith: str
+
+class InterfaithRequest(BaseModel):
+    faith_a: str
+    faith_b: str
+    topic: str
 
 def get_embedding(text: str) -> list:
     embeddings = list(embedder.embed([text]))
@@ -103,6 +108,44 @@ def tutorial(req: LearnRequest):
         messages=[{"role": "user", "content": prompt}],
     )
     return json.loads(resp.choices[0].message.content)
+
+@app.post("/api/interfaith")
+def interfaith(req: InterfaithRequest):
+    # Retrieve texts from both traditions regarding the specific topic
+    verses_a = retrieve(req.topic, [req.faith_a], k_per_faith=3)
+    verses_b = retrieve(req.topic, [req.faith_b], k_per_faith=3)
+    all_verses = verses_a + verses_b
+    
+    from openai import OpenAI
+    client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=os.getenv("GROQ_API_KEY"))
+    context = "\n".join(f"[{v['faith']} | {v['citation']}] {v['text']}" for v in all_verses)
+    
+    prompt = f"""You are an empathetic, neutral counselor specializing in interfaith relationships. 
+    A user is navigating a relationship involving {req.faith_a} and {req.faith_b}. They are specifically struggling with: {req.topic}.
+
+    Using ONLY the provided primary texts below, create a practical, respectful guide. 
+    Do not take sides. Do not water down the differences. Explain the theological 'why' behind each tradition's stance so the user understands their partner/parents.
+
+    Retrieved Texts:
+    {context}
+
+    Return strict JSON:
+    {{
+        "topic": "{req.topic}",
+        "faith_a_perspective": "Explain the theological framework of {req.faith_a} regarding this topic.",
+        "faith_b_perspective": "Explain the theological framework of {req.faith_b} regarding this topic.",
+        "common_ground": "Is there any shared value here? (e.g., both value family, discipline, or compassion).",
+        "practical_advice": "3 bullet points on how the user can navigate this specific friction point with respect."
+    }}
+    """
+    
+    resp = client.chat.completions.create(
+        model="openai/gpt-oss-120b", temperature=0.4, response_format={"type": "json_object"},
+        messages=[{"role": "user", "content": prompt}],
+    )
+    data = json.loads(resp.choices[0].message.content)
+    data["verses"] = all_verses
+    return data
 
 @app.get("/")
 def read_root():

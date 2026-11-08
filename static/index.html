@@ -11,7 +11,6 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Hanken Grotesk",system-ui,sans-serif;overflow-x:hidden}
 h1,h2,h3,.logo{font-family:Newsreader,Georgia,serif;font-weight:600;line-height:1.15;margin:0 0 .5em}
 h1{font-size:clamp(2.3rem,6.5vw,4.2rem);letter-spacing:-.02em}
-a:focus-visible,button:focus-visible,.card:focus-visible,textarea:focus-visible{outline:2px solid var(--go);outline-offset:2px}
 header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--ln)}
 .top{display:flex;align-items:center;gap:14px;padding:10px 20px;max-width:1400px;margin:0 auto;flex-wrap:wrap}
 .logo{font-size:1.7rem;letter-spacing:.14em;cursor:pointer;margin:0}
@@ -44,6 +43,8 @@ select.dropdown{padding:12px;font-size:1rem;border-radius:8px;border:1px solid v
 .quiz-option{display:block;padding:10px;border:1px solid var(--ln);border-radius:8px;margin-bottom:8px;cursor:pointer;}
 .quiz-option:hover{background:var(--tint)}
 .quiz-option input{margin-right:10px;}
+.interfaith-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px;}
+@media(max-width:600px){.interfaith-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -62,14 +63,10 @@ select.dropdown{padding:12px;font-size:1rem;border-radius:8px;border:1px solid v
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const ST={g(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const tg=()=>{const r=document.documentElement,d=getComputedStyle(r).colorScheme.includes("dark");r.dataset.theme=d?"light":"dark"};
-const PG=[["home","Home"],["ask","Ask Humanity"],["learn","Learning Hub"],["questions","Question Explorer"],["perspectives","Explore Perspectives"],["map","Connections"],["religions","Religions & Traditions"],["philosophy","Philosophy & Ideas"],["voices","Voices of Wisdom"],["culture","Culture & Human Knowledge"],["together","Living Together"],["journeys","Guided Journeys"],["dialogue","Dialogue Without Agreement"],["plans","Plans"],["about","About Oracle"]];
+const PG=[["home","Home"],["ask","Ask Humanity"],["learn","Learning Hub"],["interfaith","Interfaith & Blended"],["questions","Question Explorer"],["perspectives","Explore Perspectives"],["map","Connections"],["religions","Religions & Traditions"],["philosophy","Philosophy & Ideas"],["voices","Voices of Wisdom"],["culture","Culture & Human Knowledge"],["together","Living Together"],["journeys","Guided Journeys"],["dialogue","Dialogue Without Agreement"],["plans","Plans"],["about","About Oracle"]];
 
-const FAITHS=[
-    "Islam", "Christianity", "Judaism", "Buddhism", "Hindu traditions", "Stoicism", 
-    "Taoism", "Sikhism", "Confucianism", "Contemporary Teachers", "Swaminarayan", 
-    "Latter-day Saints", "Jainism", "Bahá'í", "Indigenous Wisdom", 
-    "Atheism", "Agnosticism", "Interfaith & Mixed Heritage"
-];
+const RELIGIONS=["Islam", "Christianity", "Judaism", "Buddhism", "Hindu traditions", "Stoicism", "Taoism", "Sikhism", "Confucianism", "Contemporary Teachers", "Swaminarayan", "Latter-day Saints", "Jainism", "Bahá'í", "Indigenous Wisdom", "Atheism", "Agnosticism"];
+const TOPICS=["Dietary Laws & Food", "Holidays & Festivals", "Raising Children", "Extended Family Dynamics", "Views on Salvation & Afterlife", "Gender Roles & Marriage"];
 
 let thread = [];
 let tutorialData = null;
@@ -80,7 +77,7 @@ home(){return`<section class="hero"><div><h1>The World’s Knowledge. Humanity�
 ask(){
   return`<h1 style="font-size:2.4rem">Ask Humanity</h1><p class="lead">Select traditions and ask a question.</p>
   <div class="action-bar"><button class="btn g" onclick="toggleAll(true)">✓ Select All</button><button class="btn g" onclick="toggleAll(false)">✗ Deselect All</button></div>
-  <div class="checkbox-grid" id="checkbox-container">${FAITHS.map(f=>`<label class="checkbox-label"><input type="checkbox" class="faith-check" value="${f}" checked> ${f}</label>`).join("")}</div>
+  <div class="checkbox-grid" id="checkbox-container">${RELIGIONS.map(f=>`<label class="checkbox-label"><input type="checkbox" class="faith-check" value="${f}" checked> ${f}</label>`).join("")}</div>
   <div style="margin-top:20px; margin-bottom: 20px;">${thread.map(t=>`<div class="q">${esc(t.q)}</div>${t.h}`).join("")}</div>
   <div class="card"><textarea id="qi" placeholder="For example: What does it say about the nature of suffering?"></textarea><button class="btn" onclick="doAsk()">Ask AI</button></div>`
 },
@@ -88,9 +85,30 @@ learn(){
   return`<h1 style="font-size:2.4rem">Learning Hub</h1><p class="lead">Select a tradition to generate a full tutorial, FAQs, and a 10-question quiz.</p>
   <select class="dropdown" onchange="loadTutorial(this.value)">
     <option value="">-- Select a tradition --</option>
-    ${FAITHS.map(f=>`<option value="${f}">${f}</option>`).join("")}
+    ${RELIGIONS.map(f=>`<option value="${f}">${f}</option>`).join("")}
   </select>
   <div id="tutorial-out"></div>`
+},
+interfaith(){
+  return`<h1 style="font-size:2.4rem">Interfaith & Blended</h1><p class="lead">Navigate the beautiful complexity of two traditions meeting. Find common ground and understand the "why" behind the friction.</p>
+  
+  <div class="card" style="cursor:default;">
+    <div class="interfaith-grid">
+        <div>
+            <label class="sub">Tradition A</label>
+            <select class="dropdown" id="faith-a" style="max-width:100%;">${RELIGIONS.map(f=>`<option value="${f}">${f}</option>`).join("")}</select>
+        </div>
+        <div>
+            <label class="sub">Tradition B</label>
+            <select class="dropdown" id="faith-b" style="max-width:100%;">${RELIGIONS.map(f=>`<option value="${f}">${f}</option>`).join("")}</select>
+        </div>
+    </div>
+    <label class="sub">What friction point are you navigating?</label>
+    <select class="dropdown" id="topic" style="max-width:100%;">${TOPICS.map(t=>`<option value="${t}">${t}</option>`).join("")}</select>
+    <button class="btn" onclick="askInterfaith()">Generate Guidance</button>
+  </div>
+  
+  <div id="interfaith-out" style="margin-top:20px;"></div>`
 },
 questions(){return`<h1>Question Explorer</h1><div class="card"><p>Coming Soon.</p></div>`},
 perspectives(){return`<h1>Explore Perspectives</h1><div class="card"><p>Coming Soon.</p></div>`},
@@ -138,6 +156,49 @@ async function doAsk(){
         thread[thread.length-1].h=`<p style="color:var(--bd)">Error: ${err.message}</p>`;
     }
     render();
+}
+
+async function askInterfaith() {
+    const faith_a = $("#faith-a").value;
+    const faith_b = $("#faith-b").value;
+    const topic = $("#topic").value;
+    
+    if (faith_a === faith_b) {
+        alert("Please select two different traditions to compare.");
+        return;
+    }
+    
+    const out = $("#interfaith-out");
+    out.innerHTML = `<p class="sub">Bridging ${faith_a} and ${faith_b} regarding "${topic}"...</p>`;
+    
+    try {
+        const res = await fetch("/api/interfaith", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ faith_a: faith_a, faith_b: faith_b, topic: topic })
+        });
+        const data = await res.json();
+        
+        let html = `<div class="card" style="cursor:default;"><h2>Bridging: ${data.topic}</h2>`;
+        
+        html += `<div class="box"><h3>${faith_a} Perspective</h3><p>${data.faith_a_perspective}</p></div>`;
+        html += `<div class="box"><h3>${faith_b} Perspective</h3><p>${data.faith_b_perspective}</p></div>`;
+        html += `<div class="box s"><h3>Shared Common Ground</h3><p>${data.common_ground}</p></div>`;
+        
+        html += `<div class="box"><h3>Practical Advice</h3><p>${data.practical_advice.replace(/\n/g, '<br>')}</p></div>`;
+        
+        if(data.verses && data.verses.length > 0){
+            html+=`<details><summary>📖 View Primary Texts Used</summary>`;
+            data.verses.forEach(v=>{ html += `<p class="verse-item"><b>${v.faith} (${v.citation}):</b> “${v.text}”</p>`; });
+            html += `</details>`;
+        }
+        
+        html += `</div>`;
+        out.innerHTML = html;
+        
+    } catch (e) {
+        out.innerHTML = `<p style="color:var(--bd)">Error: ${e.message}</p>`;
+    }
 }
 
 async function loadTutorial(faith) {
