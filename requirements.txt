@@ -4,7 +4,4 @@ python-dotenv
 supabase
 openai
 huggingface_hub
-numpy
-pydantic
 requests
-tqdm
