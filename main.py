@@ -10,7 +10,7 @@ import json
 load_dotenv()
 from system_prompt import SYSTEM_PROMPT
 
-app = FastAPI(title="ORACLE Backend", version="3.4.0")
+app = FastAPI(title="ORACLE Backend", version="4.0.0")
 
 print("Initializing Cloud Database and FastEmbed...")
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
@@ -30,8 +30,8 @@ def retrieve(question: str, k_per_faith: int = 2) -> list:
         return []
         
     verses = []
-    # Updated list of all 10 traditions
-        faiths = [
+    # ALL 11 TRADITIONS
+    faiths = [
         "Islam", "Christianity", "Judaism", "Buddhism", 
         "Hindu traditions", "Stoicism", "Taoism", 
         "Sikhism", "Confucianism", "Contemporary Teachers", "Swaminarayan"
