@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from dotenv import load_dotenv
 from supabase import create_client
 from fastembed import TextEmbedding
@@ -11,7 +11,7 @@ import json
 load_dotenv()
 from system_prompt import SYSTEM_PROMPT
 
-app = FastAPI(title="ORACLE Backend", version="6.1.0")
+app = FastAPI(title="ORACLE Backend", version="6.2.0")
 
 print("Initializing Cloud Database and FastEmbed...")
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
@@ -28,12 +28,13 @@ class InterfaithRequest(BaseModel):
     faith_a: str
     faith_b: str
     topic: str
+    custom_question: Optional[str] = None
 
 def get_embedding(text: str) -> list:
     embeddings = list(embedder.embed([text]))
     return embeddings[0].tolist()
 
-def retrieve(question: str, selected_faiths: List[str], k_per_faith: int = 2) -> list:
+def retrieve(question: str, selected_faiths: List[str], k_per_faith: int = 3) -> list:
     q_embedding = get_embedding(question)
     verses = []
     for faith in selected_faiths:
@@ -111,31 +112,36 @@ def tutorial(req: LearnRequest):
 
 @app.post("/api/interfaith")
 def interfaith(req: InterfaithRequest):
-    # Retrieve texts from both traditions regarding the specific topic
-    verses_a = retrieve(req.topic, [req.faith_a], k_per_faith=3)
-    verses_b = retrieve(req.topic, [req.faith_b], k_per_faith=3)
+    # Determine the actual query to search for
+    query = req.custom_question if req.custom_question and len(req.custom_question.strip()) > 5 else req.topic
+    
+    # Retrieve texts from both traditions regarding the specific topic/question
+    verses_a = retrieve(query, [req.faith_a], k_per_faith=3)
+    verses_b = retrieve(query, [req.faith_b], k_per_faith=3)
     all_verses = verses_a + verses_b
     
     from openai import OpenAI
     client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=os.getenv("GROQ_API_KEY"))
     context = "\n".join(f"[{v['faith']} | {v['citation']}] {v['text']}" for v in all_verses)
     
-    prompt = f"""You are an empathetic, neutral counselor specializing in interfaith relationships. 
-    A user is navigating a relationship involving {req.faith_a} and {req.faith_b}. They are specifically struggling with: {req.topic}.
+    prompt = f"""You are an empathetic, neutral counselor specializing in interfaith relationships and mixed-heritage identities. 
+    The user is navigating a relationship or family dynamic involving {req.faith_a} and {req.faith_b}. 
+    They are seeking guidance on: {query}
 
     Using ONLY the provided primary texts below, create a practical, respectful guide. 
-    Do not take sides. Do not water down the differences. Explain the theological 'why' behind each tradition's stance so the user understands their partner/parents.
+    Do not take sides. Do not water down the differences. Explain the theological 'why' behind each tradition's stance so the user understands their partner/parents/family.
+    If the texts provided do not directly address the query, state that, but still offer ethical guidance based on the general spirit of the traditions.
 
     Retrieved Texts:
     {context}
 
     Return strict JSON:
     {{
-        "topic": "{req.topic}",
-        "faith_a_perspective": "Explain the theological framework of {req.faith_a} regarding this topic.",
-        "faith_b_perspective": "Explain the theological framework of {req.faith_b} regarding this topic.",
+        "topic": "{query}",
+        "faith_a_perspective": "Explain the theological and cultural framework of {req.faith_a} regarding this.",
+        "faith_b_perspective": "Explain the theological and cultural framework of {req.faith_b} regarding this.",
         "common_ground": "Is there any shared value here? (e.g., both value family, discipline, or compassion).",
-        "practical_advice": "3 bullet points on how the user can navigate this specific friction point with respect."
+        "practical_advice": "3 bullet points on how the user can navigate this specific friction point with respect and emotional intelligence."
     }}
     """
     

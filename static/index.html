@@ -39,7 +39,7 @@ summary{font-weight:600;color:var(--ac)}
 .checkbox-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:15px}
 .checkbox-label{display:flex;align-items:center;gap:8px;font-size:0.9rem;cursor:pointer}
 .action-bar{display:flex;gap:10px;margin-bottom:15px}
-select.dropdown{padding:12px;font-size:1rem;border-radius:8px;border:1px solid var(--ln);width:100%;max-width:400px;background:var(--cd);color:var(--ink);margin-bottom:20px;}
+select.dropdown{padding:12px;font-size:1rem;border-radius:8px;border:1px solid var(--ln);width:100%;max-width:400px;background:var(--cd);color:var(--ink);margin-bottom:15px;}
 .quiz-option{display:block;padding:10px;border:1px solid var(--ln);border-radius:8px;margin-bottom:8px;cursor:pointer;}
 .quiz-option:hover{background:var(--tint)}
 .quiz-option input{margin-right:10px;}
@@ -66,7 +66,17 @@ const tg=()=>{const r=document.documentElement,d=getComputedStyle(r).colorScheme
 const PG=[["home","Home"],["ask","Ask Humanity"],["learn","Learning Hub"],["interfaith","Interfaith & Blended"],["questions","Question Explorer"],["perspectives","Explore Perspectives"],["map","Connections"],["religions","Religions & Traditions"],["philosophy","Philosophy & Ideas"],["voices","Voices of Wisdom"],["culture","Culture & Human Knowledge"],["together","Living Together"],["journeys","Guided Journeys"],["dialogue","Dialogue Without Agreement"],["plans","Plans"],["about","About Oracle"]];
 
 const RELIGIONS=["Islam", "Christianity", "Judaism", "Buddhism", "Hindu traditions", "Stoicism", "Taoism", "Sikhism", "Confucianism", "Contemporary Teachers", "Swaminarayan", "Latter-day Saints", "Jainism", "Bahá'í", "Indigenous Wisdom", "Atheism", "Agnosticism"];
-const TOPICS=["Dietary Laws & Food", "Holidays & Festivals", "Raising Children", "Extended Family Dynamics", "Views on Salvation & Afterlife", "Gender Roles & Marriage"];
+
+const TOPICS=[
+    "Dealing with Death (Burial vs. Cremation)",
+    "Daily Prayers, Rituals & Fasting",
+    "Celebrating Holidays & Festivals",
+    "Forming a Blended Identity",
+    "Dietary Laws & Food",
+    "Raising Children in Two Faiths",
+    "Extended Family & In-Laws",
+    "Gender Roles & Marriage"
+];
 
 let thread = [];
 let tutorialData = null;
@@ -103,8 +113,13 @@ interfaith(){
             <select class="dropdown" id="faith-b" style="max-width:100%;">${RELIGIONS.map(f=>`<option value="${f}">${f}</option>`).join("")}</select>
         </div>
     </div>
-    <label class="sub">What friction point are you navigating?</label>
+    
+    <label class="sub">Select a common friction point:</label>
     <select class="dropdown" id="topic" style="max-width:100%;">${TOPICS.map(t=>`<option value="${t}">${t}</option>`).join("")}</select>
+    
+    <label class="sub" style="margin-top:10px; display:block;">Or ask a specific question about your situation:</label>
+    <textarea id="custom-interfaith-q" placeholder="e.g., My Muslim mother wants me to fast, but my Catholic father thinks it's unhealthy. How do I navigate this?"></textarea>
+    
     <button class="btn" onclick="askInterfaith()">Generate Guidance</button>
   </div>
   
@@ -162,6 +177,7 @@ async function askInterfaith() {
     const faith_a = $("#faith-a").value;
     const faith_b = $("#faith-b").value;
     const topic = $("#topic").value;
+    const custom_q = $("#custom-interfaith-q").value.trim();
     
     if (faith_a === faith_b) {
         alert("Please select two different traditions to compare.");
@@ -169,17 +185,17 @@ async function askInterfaith() {
     }
     
     const out = $("#interfaith-out");
-    out.innerHTML = `<p class="sub">Bridging ${faith_a} and ${faith_b} regarding "${topic}"...</p>`;
+    out.innerHTML = `<p class="sub">Generating empathetic guidance... (This may take 10 seconds)</p>`;
     
     try {
         const res = await fetch("/api/interfaith", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ faith_a: faith_a, faith_b: faith_b, topic: topic })
+            body: JSON.stringify({ faith_a: faith_a, faith_b: faith_b, topic: topic, custom_question: custom_q })
         });
         const data = await res.json();
         
-        let html = `<div class="card" style="cursor:default;"><h2>Bridging: ${data.topic}</h2>`;
+        let html = `<div class="card" style="cursor:default;"><h2>Guidance: ${data.topic}</h2>`;
         
         html += `<div class="box"><h3>${faith_a} Perspective</h3><p>${data.faith_a_perspective}</p></div>`;
         html += `<div class="box"><h3>${faith_b} Perspective</h3><p>${data.faith_b_perspective}</p></div>`;
