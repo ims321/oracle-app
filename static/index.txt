@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oracle — Worldview Intelligence</title>
+<style>
+:root{--bg:#f2f5f6;--ink:#13212b;--mu:#5d6b75;--cd:#fff;--ln:#d5dde1;--ac:#0e5a63;--go:#b97a12;--ok:#1f6b45;--wn:#8f5a0d;--bd:#9b3a3a;--tint:#e4edee;color-scheme:light;}
+@media(prefers-color-scheme:dark){:root{--bg:#0d161c;--ink:#e6edf0;--mu:#93a4ae;--cd:#15222a;--ln:#26373f;--ac:#5cc0c8;--go:#e3a540;--ok:#6fd09b;--wn:#e0a653;--bd:#e57f7f;--tint:#12262c;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,sans-serif;overflow-x:hidden;}
+header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--ln);}
+.top{display:flex;align-items:center;gap:14px;padding:10px 20px;max-width:1400px;margin:0 auto;flex-wrap:wrap}
+.logo{font-family:Georgia,serif;font-size:1.7rem;margin:0;cursor:pointer;}
+.layout{display:flex;max-width:1400px;margin:0 auto;align-items:flex-start;}
+.sidebar{width:260px;flex-shrink:0;border-right:1px solid var(--ln);padding:20px 14px;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;}
+nav{display:flex;flex-direction:column;gap:4px;}
+nav a{padding:10px 14px;border-radius:8px;text-decoration:none;color:var(--mu);font-size:.9rem;}
+nav a:hover{background:var(--tint);}
+nav a.on{background:var(--ac);color:var(--bg);font-weight:500;}
+main{flex:1;padding:26px 40px;min-width:0;}
+@media(max-width:768px){.layout{flex-direction:column}.sidebar{width:100%;border-right:none;border-bottom:1px solid var(--ln);height:auto;position:static;}nav{flex-direction:row;overflow-x:auto;padding-bottom:8px}main{padding:20px}}
+.card{background:var(--cd);border:1px solid var(--ln);border-radius:8px;padding:18px;cursor:pointer;margin-bottom:10px;display:block;width:100%;text-align:left;color:inherit;font:inherit;text-decoration:none;}
+.card:hover{border-color:var(--ac);}
+.btn{background:var(--ac);color:var(--bg);border:0;border-radius:8px;padding:9px 18px;font:600 .95rem inherit;cursor:pointer;}
+textarea{width:100%;font:inherit;padding:12px;border:1px solid var(--ln);border-radius:8px;min-height:70px;background:var(--cd);color:var(--ink);}
+.box{border-top:2px solid var(--ac);padding-top:8px;margin:14px 0;}
+.box.s{border-color:var(--go);}
+.box.d{border-color:var(--bd);}
+pre{white-space:pre-wrap;background:var(--tint);padding:10px;border-radius:8px;font-size:13px;}
+</style>
+</head>
+<body>
+<header><div class="top"><h2 class="logo" onclick="location.hash='home'">Oracle</h2><span style="color:var(--mu);font-size:.85rem;flex:1">Unity without Uniformity</span></div></header>
+<div class="layout">
+<aside class="sidebar"><nav id="nv"></nav></aside>
+<main id="m"></main>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const PG=[["home","Home"],["ask","Ask Humanity"],["about","About Oracle"]];
+const V={
+home(){return`<h1>The World’s Knowledge. Humanity’s Perspectives.</h1><p>Explore the ideas, beliefs, traditions and wisdom that have shaped humanity.</p><div class="card" onclick="location.hash='ask'"><h3>ASK HUMANITY</h3><p>An open conversational experience.</p></div>`},
+ask(){return`<h1>Ask Humanity</h1><p>Ask about beliefs, philosophy, spirituality or existence.</p><div class="card"><textarea id="qi" placeholder="For example: What does the text say about love?"></textarea><p><button class="btn" onclick="doAsk()">Ask</button></p><div id="out"></div></div>`},
+about(){return`<h1>About Oracle</h1><p>The objective is to help humanity become better at being different together.</p>`}
+};
+async function doAsk(){
+    const q=$("#qi").value.trim(); if(!q) return;
+    const out=$("#out"); out.innerHTML="<p>Searching...</p>";
+    try{
+        const res=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q})});
+        if(!res.ok) throw new Error("Backend offline");
+        const data=await res.json();
+        let html=`<div class="box s"><h3>Universal thread</h3><p>${data.universal_thread||"No shared thread found."}</p></div>`;
+        if(data.aligned_verses&&data.aligned_verses.length>0){
+            html+=`<div class="box"><h3>Aligned verses</h3>`;
+            data.aligned_verses.forEach(v=>{html+=`<p><b>${v.faith} (${v.citation}):</b> “${v.text}”</p>`});
+            html+=`</div>`;
+        }
+        if(data.distinct_rationales&&data.distinct_rationales.length>0){
+            html+=`<div class="box s"><h3>Distinct rationales</h3>`;
+            data.distinct_rationales.forEach(r=>{html+=`<p><b>${r.faith}:</b> ${r.theological_logic}</p>`});
+            html+=`</div>`;
+        }
+        out.innerHTML=html;
+    }catch(err){
+        out.innerHTML=`<p style="color:var(--bd)">Error: ${err.message}</p>`;
+    }
+}
+function render(){const id=(location.hash||"#home").slice(1),p=V[id]?id:"home";$("#nv").innerHTML=PG.map(x=>`<a href="#${x[0]}" class="${x[0]===p?"on":""}">${x[1]}</a>`).join("");$("#m").innerHTML=V[p]()}
+addEventListener("hashchange",render);render();
+</script>
+</body>
+</html>

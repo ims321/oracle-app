@@ -1,0 +1,60 @@
+{
+  "verses": [
+    {
+      "id": "v1",
+      "faith": "Judaism",
+      "citation": "Deuteronomy 15:11",
+      "translation": "JPS (paraphrase)",
+      "text": "Open your hand to the poor and needy in your land.",
+      "themes": "charity,wealth,poverty"
+    },
+    {
+      "id": "v2",
+      "faith": "Christianity",
+      "citation": "Acts 2:44-45",
+      "translation": "NRSV (paraphrase)",
+      "text": "They would sell their possessions and distribute to all, as any had need.",
+      "themes": "charity,wealth,community"
+    },
+    {
+      "id": "v3",
+      "faith": "Islam",
+      "citation": "Quran 9:60",
+      "translation": "Sahih International (paraphrase)",
+      "text": "Zakat expenditures are for the poor and the needy and those employed to collect it.",
+      "themes": "charity,zakat,wealth"
+    },
+    {
+      "id": "v4",
+      "faith": "Hindu traditions",
+      "citation": "Bhagavad Gita 17:20",
+      "translation": "Easwaran (paraphrase)",
+      "text": "Giving is sattvic when given to one who cannot return it, at the right place and time.",
+      "themes": "charity,dana,wealth"
+    },
+    {
+      "id": "v5",
+      "faith": "Judaism",
+      "citation": "Exodus 21:23-25",
+      "translation": "JPS (paraphrase)",
+      "text": "Life for life, eye for eye, tooth for tooth.",
+      "themes": "retaliation,justice"
+    },
+    {
+      "id": "v6",
+      "faith": "Christianity",
+      "citation": "Matthew 5:38-39",
+      "translation": "NRSV (paraphrase)",
+      "text": "Do not resist an evildoer. If anyone strikes you on the right cheek, turn the other also.",
+      "themes": "retaliation,forgiveness"
+    },
+    {
+      "id": "v7",
+      "faith": "Islam",
+      "citation": "Quran 42:40",
+      "translation": "Sahih International (paraphrase)",
+      "text": "Whoever pardons and makes reconciliation, his reward is with Allah.",
+      "themes": "retaliation,forgiveness"
+    }
+  ]
+}
