@@ -68,10 +68,9 @@ summary{font-weight:600;color:var(--ac)}
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const tg=()=>{const r=document.documentElement,d=getComputedStyle(r).colorScheme.includes("dark");r.dataset.theme=d?"light":"dark"};
-const PG=[["home","Home"],["ask","Ask Humanity"],["learn","Learning Hub"],["interfaith","Interfaith & Blended"],["questions","Question Explorer"],["perspectives","Explore Perspectives"],["map","Connections"],["religions","Religions & Traditions"],["philosophy","Philosophy & Ideas"],["voices","Voices of Wisdom"],["culture","Culture & Human Knowledge"],["together","Living Together"],["journeys","Guided Journeys"],["dialogue","Dialogue Without Agreement"],["about","About Oracle"]];
+const PG=[["home","Home"],["ask","Ask Humanity"],["learn","Learning Hub"],["interfaith","Interfaith & Blended"],["questions","Question Explorer"],["perspectives","Explore Perspectives"],["map","Connections"],["religions","Religions & Traditions"],["philosophy","Philosophy & Ideas"],["voices","Voices of Wisdom"],["culture","Culture & Human Knowledge"],["together","Living Together"],["journeys","Guided Journeys"],["dialogue","Dialogue Without Agreement"],["plans","Plans"],["about","About Oracle"]];
 
 const RELIGIONS=["Islam","Christianity","Judaism","Buddhism","Hindu traditions","Stoicism","Taoism","Sikhism","Confucianism","Contemporary Teachers","Swaminarayan","Latter-day Saints","Jainism","Bahá'í","African Traditional","Ubuntu","Indigenous Wisdom","Atheism","Agnosticism"];
-
 const TOPICS=["Dealing with Death (Burial vs. Cremation)","Daily Prayers, Rituals & Fasting","Celebrating Holidays & Festivals","Forming a Blended Identity","Dietary Laws & Food","Raising Children in Two Faiths","Extended Family & In-Laws","Gender Roles & Marriage"];
 
 const CATS=["Understanding Religions","God and Existence","Life and Purpose","Consciousness and Spirituality","Morality and Human Behaviour","Death and the Afterlife"];
@@ -226,6 +225,10 @@ function sendCh(i,k){const t=$("#ch").value.trim();if(!t)return;const c=ST.g("ch
 function sv_(id){const s=ST.g("saved",[]),i=s.indexOf(id);i<0?s.push(id):s.splice(i,1);ST.s("saved",s);render()}
 function pg_(i){const p=ST.g("prog",{}),k=jSel+"."+i;p[k]=!p[k];ST.s("prog",p);render()}
 
+function openModalStep(step) {
+  alert("Opening lesson for: " + step + ". (This feature will be built in the next update.)");
+}
+
 const flag=`<div class="note"><b>Illustrative sample content.</b> Nothing here has been checked against primary sources. Evidence labels are provisional editorial estimates.</div>`;
 
 const V={
@@ -245,6 +248,7 @@ const pr=ST.g("prog",{});return`<h1 style="font-size:2.4rem">Guided Journeys</h1
 dialogue(){const d=DL[dSel];return`<h1 style="font-size:2.4rem">Dialogue Without Agreement</h1><p class="lead">Each position is stated as its holders would state it, with its strongest objection. No winner is declared.</p>${flag}${DL.map((x,i)=>`<button class="chip ${i===dSel?"on":""}" onclick="dSel=${i};render()">${x.t}</button>`).join("")}<div class="grid" style="margin-top:12px">${d.pos.map(p=>`<div class="card" style="cursor:default"><h3>${p[0]}</h3><p>${p[1]}</p><p class="sub" style="margin:0">${p[2]}</p></div>`).join("")}</div><div class="two"><div class="box"><h3>Where they agree</h3><p>${d.ag}</p></div><div class="box d"><h3>Where they disagree</h3><p>${d.dg}</p></div></div>`},
 about(){return`<h1 style="font-size:2.4rem">About Oracle</h1><p class="lead">The objective is not to make humanity the same. It is to help humanity become better at being different together.</p><div class="two"><div class="box"><h3>Oracle will not</h3><p>Promote one worldview above others, claim all traditions are identical, manufacture agreement, tell you what to believe, or present unsupported claims as fact.</p></div><div class="box s"><h3>What this version is</h3><p>A navigable foundation with illustrative sample content. There are no accounts, database or live knowledge engine yet. Saved items and progress are stored in your browser only.</p></div></div>
 <h2>Evidence labels</h2><table>${[["Verified","Checked against appropriate primary or scholarly sources."],["Well Supported","Broad scholarly or traditional agreement."],["Contested","Credible sources or traditions disagree."],["Limited Evidence","Few or weak sources."],["Unverified","Not yet checked."]].map(r=>`<tr><td>${ev(r[0])}</td><td>${r[1]}</td></tr>`).join("")}</table>`}};
+
 let det=null,srch="";
 function rank(q,n=8){const k=(q.toLowerCase().match(/[a-z’']{3,}/g)||[]).filter(x=>!SW.includes(x)).map(x=>x.replace(/s$/,""));return ALL.map(o=>{let s=0,a=o.n.toLowerCase(),t=o.t.toLowerCase();k.forEach(x=>{if(a.includes(x))s+=3;if(t.includes(x))s++});return{...o,s}}).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).slice(0,n)}
 const rc=o=>`<button class="card" onclick="${o.f}"><p class="sub">${o.k}</p><h3>${esc(o.n)}</h3><p>${esc(o.s.slice(0,150))}…</p>${ev(o.e)}</button>`;
@@ -266,7 +270,34 @@ if(lt===2)b=`<div class="grid">${MY.map(x=>`<div class="card" style="cursor:defa
 if(lt===3)b=(mode==="Teacher"?`<div class="box s"><h3>Ground rules</h3><p>Listen first. Speak for yourself. Challenge ideas, not people.</p></div>`:"")+SC.map((s,i)=>`<div class="box"><h3>${s[0]}</h3><p>${s[1]}</p>${s[2].map((o,k)=>`<button class="chip ${scn[i]===k?"on":""}" onclick="scn[${i}]=${k};render()">${o[0]}</button>`).join("")}${scn[i]!==undefined?`<p><b>What might happen:</b> ${s[2][scn[i]][1]}</p>`:""}</div>`).join("");
 return`<h1 style="font-size:2.4rem">Living Together</h1><p class="lead">Understanding the people around you.</p>${flag}<p class="sub">Country</p>${c.map(x=>`<button class="chip ${x===ctry?"on":""}" onclick="ctry='${x}';render()">${x}</button>`).join("")}<p class="sub" style="margin-top:6px">Explore</p>${T.map((x,i)=>`<button class="chip ${i===lt?"on":""}" onclick="lt=${i};render()">${x}</button>`).join("")}<div style="margin-top:12px">${b}</div>`};
 V.religions=()=>lib("religions");V.philosophy=()=>lib("philosophy");V.voices=()=>lib("voices");V.culture=()=>lib("culture");
+V.plans=()=>`<h1 style="font-size:2.4rem">Plans</h1><p class="lead">Free access to the knowledge and evidence layer, with paid tiers for convenience, depth and institutions.</p><div class="note">Illustrative pricing for the prototype. Nothing is for sale yet.</div>`;
 function lib(pg){return`<h1 style="font-size:2.4rem">${LT[pg][0]}</h1><p class="lead">${LT[pg][1]}</p>${flag}<div class="grid">${D[pg].map((r,i)=>`<button class="card" onclick="openItem('${pg}',${i})"><p class="sub">${r[1]}</p><h3>${r[0]}</h3><p>${r[3].slice(0,110)}…</p>${ev(r[2])}</button>`).join("")}</div>`}
-function render(){const id=(location.hash||"#home").slice(1),p=V[id]?id:"home";$("#nv").innerHTML=PG.map(x=>`<a href="#${x[0]}" class="${x[0]===p?"on":""}" onclick="qSel=null;jSel=null">${x[1]}</a>`).join("");$("#m").innerHTML=mn()+V[p]()}
+
+let mode="Everyone",ctry="South Africa",lt=0,scn={};
+const mn=()=>mode==="Everyone"?"":`<div class="note">${mode==="Teacher"?"<b>Teacher mode:</b> ground rules and discussion questions are shown.":"<b>"+mode+":</b> questions are chosen for you in Ask Humanity."}</div>`;
+
+let cn=null;
+const NN=["Ubuntu","Confucianism","Buddhism","Christianity","Islam","Hindu traditions","Judaism","Stoicism","Kantian ethics","Secular humanism","Existentialism","African traditions"];
+const EG=[[0,1,"s","Both see a person as formed through relationships and duties to others. Scholars compare them as relational ethics."],[0,11,"s","Community and respect for ancestors run through many African traditions. Scholars debate how closely ubuntu reflects them."],[3,4,"s","Abrahamic monotheism, prophets and a final judgement."],[3,4,"d","The nature of Jesus and how salvation works."],[6,3,"s","Shared Hebrew scriptures and the idea of a covenant."],[6,3,"d","Whether Jesus is the Messiah."],[6,4,"s","Strict monotheism and a tradition of religious law."],[2,5,"s","Karma, rebirth and liberation from the cycle."],[2,5,"d","Whether a lasting self (atman) exists or not."],[2,7,"s","Freedom through training the mind and loosening attachment."],[1,7,"s","Moral cultivation and virtue as the path to a good life."],[8,9,"s","Human dignity grounded in reason and autonomy."],[9,10,"s","Meaning and responsibility rest with people."],[9,10,"d","Whether universal values exist or each person creates them."],[3,9,"d","Whether morality needs a divine source."],[4,5,"d","How one God relates to many deities or forms. Views within Hindu traditions vary."]];
+V.map=()=>{const pt=i=>{const a=i*Math.PI/6-Math.PI/2;return[300+170*Math.cos(a),240+170*Math.sin(a)]},on=e=>cn===null||e[0]===cn||e[1]===cn,
+ln=EG.map(e=>{const[a,b]=[pt(e[0]),pt(e[1])];const d=e[2]==="s"?`M${a}L${b}`:`M${a}Q${(a[0]+b[0])/2+(e[0]-e[1])*3},${(a[1]+b[1])/2+25} ${b}`;return`<path d="${d.replace(/(\d)(,)/g,"$1 ").replace(/,/g," ")}" fill="none" stroke="${e[2]==="s"?"var(--ok)":"var(--bd)"}" stroke-width="2" ${e[2]==="d"?'stroke-dasharray="5 4"':""} opacity="${on(e)?.8:.1}"/>`}).join(""),
+nd=NN.map((n,i)=>{const[x,y]=pt(i),l=x>310?"start":x<290?"end":"middle",dx=l==="start"?12:l==="end"?-12:0,dy=y<100?-12:y>380?20:4;return`<g onclick="cn=${i};render()" style="cursor:pointer"><circle cx="${x}" cy="${y}" r="${cn===i?10:7}" fill="var(--ac)"/><text x="${x+dx}" y="${y+dy}" text-anchor="${l}" font-size="12" fill="var(--ink)" font-weight="${cn===i?600:400}">${n}</text></g>`}).join("");
+return`<h1 style="font-size:2.4rem">Connections</h1><p class="lead">See where traditions share ideas and where they genuinely differ. Choose one to focus on its links.</p>${flag}<p><span class="ev ok">solid line: shared theme</span> <span class="ev bd">dashed line: genuine difference</span></p>${NN.map((n,i)=>`<button class="chip ${cn===i?"on":""}" onclick="cn=${i};render()">${n}</button>`).join("")}${cn!==null?`<button class="chip" onclick="cn=null;render()">Show all</button>`:""}<svg viewBox="-60 0 720 480" role="img" aria-label="Network of connections between traditions" style="width:100%;max-width:760px;display:block;margin:10px auto">${ln}${nd}</svg><div class="grid">${EG.filter(on).map(e=>`<div class="card" style="cursor:default"><p class="sub">${NN[e[0]]} and ${NN[e[1]]}</p><p style="margin:0 0 6px">${e[3]}</p><span class="ev ${e[2]==="s"?"ok":"bd"}">${e[2]==="s"?"Shared theme":"Genuine difference"}</span></div>`).join("")}</div>`};
+
+function render(){
+  try {
+    const id=(location.hash||"#home").slice(1);
+    const p=V[id]?id:"home";
+    $("#nv").innerHTML=PG.map(x=>`<a href="#${x[0]}" class="${x[0]===p?"on":""}" onclick="qSel=null;jSel=null">${x[1]}</a>`).join("");
+    $("#m").innerHTML=mn()+V[p]();
+  } catch (err) {
+    $("#m").innerHTML = `<div style="padding:20px; color:var(--bd); background:var(--cd); border-radius:8px;">
+      <h2>Error Loading Page</h2>
+      <p>The app hit a bug while trying to load this page.</p>
+      <pre style="background:var(--tint); padding:10px; border-radius:4px; font-size:12px;">${err.message}</pre>
+      <button class="btn" onclick="location.hash='home'; location.reload();">Reload App</button>
+    </div>`;
+  }
+}
 addEventListener("hashchange",()=>{render();scrollTo(0,0)});render();
 </script></body></html>
