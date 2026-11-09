@@ -1,0 +1,17 @@
+{
+  "name": "Oracle — Worldview Intelligence",
+  "short_name": "Oracle",
+  "description": "Explore the world's beliefs, philosophies, and traditions.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f5f6",
+  "theme_color": "#0e5a63",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
