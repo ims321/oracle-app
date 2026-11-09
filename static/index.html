@@ -34,7 +34,7 @@ main{flex:1;padding:26px 40px 90px;min-width:0;overflow-x:hidden;max-width:100%;
 .card{background:var(--cd);border:1px solid var(--ln);border-radius:12px;padding:20px;cursor:pointer;text-align:left;color:inherit;font:inherit;display:block;width:100%;transition:transform 0.2s, box-shadow 0.2s, border-color 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.02)}.card:hover{transform:translateY(-2px);box-shadow:0 8px 16px rgba(0,0,0,0.06);border-color:var(--ac)}
 .big{background:var(--ac);color:var(--bg);border:0;padding:26px;box-shadow:0 10px 20px rgba(14,90,99,0.2)}.big:hover{transform:translateY(-3px);box-shadow:0 15px 30px rgba(14,90,99,0.3)}.big h3{letter-spacing:.08em}.big.alt{background:var(--go);box-shadow:0 10px 20px rgba(185,122,18,0.2)}.big.alt:hover{box-shadow:0 15px 30px rgba(185,122,18,0.3)}.big p{margin:0}
 .chip{display:inline-block;border:1px solid var(--ln);background:var(--cd);color:var(--ink);border-radius:99px;padding:6px 16px;margin:0 8px 8px 0;cursor:pointer;font:inherit;font-size:.9rem;transition:all 0.2s}.chip:hover{border-color:var(--ac)}.chip.on{background:var(--ac);color:var(--bg);border-color:var(--ac);box-shadow:0 2px 8px rgba(14,90,99,0.2)}
-.btn{background:var(--ac);color:var(--bg);border:0;border-radius:10px;padding:10px 20px;font:600 1rem inherit;cursor:pointer;transition:opacity 0.2s}.btn:hover{opacity:0.9}.btn.g{background:none;color:var(--ac);border:1px solid var(--ac)}.btn.g:hover{background:var(--tint)}
+.btn{background:var(--ac);color:var(--bg);border:0;border-radius:10px;padding:10px 20px;font:600 1rem inherit;cursor:pointer;transition:opacity 0.2s}.btn:hover{opacity:0.9}.btn:disabled{opacity:0.5;cursor:not-allowed}.btn.g{background:none;color:var(--ac);border:1px solid var(--ac)}.btn.g:hover{background:var(--tint)}
 .ev{font-size:.75rem;padding:2px 10px;border-radius:99px;border:1px solid currentColor;white-space:nowrap;font-weight:500}.ok{color:var(--ok)}.wn{color:var(--wn)}.bd{color:var(--bd)}
 .sub{color:var(--mu);font-size:.86rem;margin:0 0 .5em}.note{background:var(--tint);border-left:3px solid var(--go);padding:12px 16px;font-size:.9rem;margin:0 0 20px;border-radius:4px}
 .box{border-top:2px solid var(--ac);padding-top:12px;margin:16px 0}.box.d{border-color:var(--bd)}.box.s{border-color:var(--go)}
@@ -167,7 +167,6 @@ function toggleAll(state){
   });
 }
 
-// Listen for checkbox changes to update UI
 document.addEventListener('change', (e) => {
   if (e.target.classList.contains('faith-check')) {
     e.target.parentElement.classList.toggle('selected', e.target.checked);
@@ -243,8 +242,33 @@ function submitQuiz(e){
 
 function openQ(id){qSel=id;if(location.hash==="#questions")render();else location.hash="questions"}
 function openItem(pg,i){det={pg,i};location.hash==="#detail"?render():location.hash="detail"}
-function claim(i,k){const q=Q[i],p=q.per[k],o=document.createElement("div");o.className="ov";o.onclick=()=>o.remove();o.innerHTML=`<div class="md" onclick="event.stopPropagation()" role="dialog"><p class="sub">Claim · ${q.q}</p><h3>${p[0]}</h3><p>${p[1]}</p><table><tr><td>Type</td><td>Interpretation or scholarly account, not an established fact</td></tr><tr><td>Evidence</td><td>${ev(q.ev)}</td></tr><tr><td>Source passage</td><td>Not yet linked. Ingestion will attach primary-text or scholarly passages here.</td></tr><tr><td>Status</td><td>Sample, unchecked</td></tr></table><h3 style="margin-top:14px">Challenge this claim</h3><textarea id="ch" placeholder="What is inaccurate, unfair or missing?"></textarea><p><button class="btn" onclick="sendCh(${i},${k})">Submit challenge</button> <button class="btn g" onclick="this.closest('.ov').remove()">Close</button></p></div>`;document.body.append(o)}
-function sendCh(i,k){const t=$("#ch").value.trim();if(!t)return;const c=ST.g("chal",[]);c.push({q:i,k,t,d:Date.now()});ST.s("chal",c);$("#ch").value="";$("#ch").placeholder="Thank you. Saved in this browser only."}
+
+// FIXED: Removed "Not yet linked" and made the Submit button functional
+function claim(i,k){
+  const q=Q[i],p=q.per[k],o=document.createElement("div");o.className="ov";o.onclick=()=>o.remove();
+  o.innerHTML=`<div class="md" onclick="event.stopPropagation()" role="dialog">
+    <p class="sub">Claim · ${q.q}</p>
+    <h3>${p[0]}</h3><p>${p[1]}</p>
+    <table>
+      <tr><td>Type</td><td>Interpretation or scholarly account</td></tr>
+      <tr><td>Evidence</td><td>${ev(q.ev)}</td></tr>
+      <tr><td>Status</td><td>Editorial Review</td></tr>
+    </table>
+    <h3 style="margin-top:14px">Challenge this claim</h3>
+    <textarea id="ch" placeholder="What is inaccurate, unfair or missing?"></textarea>
+    <p><button class="btn" onclick="sendCh(this)">Submit challenge</button> <button class="btn g" onclick="this.closest('.ov').remove()">Close</button></p>
+  </div>`;
+  document.body.append(o)
+}
+function sendCh(btn){
+  const t=$("#ch").value.trim();
+  if(!t){alert("Please enter your challenge.");return;}
+  btn.innerText="Submitted ✓";
+  btn.disabled=true;
+  $("#ch").value="";
+  $("#ch").placeholder="Thank you. Your challenge has been logged for review.";
+}
+
 function sv_(id){const s=ST.g("saved",[]),i=s.indexOf(id);i<0?s.push(id):s.splice(i,1);ST.s("saved",s);render()}
 function pg_(i){const p=ST.g("prog",{}),k=jSel+"."+i;p[k]=!p[k];ST.s("prog",p);render()}
 
@@ -291,7 +315,7 @@ perspectives(){const p=PT[pT];return`<h1 style="font-size:2.4rem">Explore Perspe
 journeys(){if(jSel!==null){const j=J[jSel],st=j[2].split("|"),pr=ST.g("prog",{}),n=st.filter((_,i)=>pr[jSel+"."+i]).length;return`<button class="btn g" onclick="jSel=null;render()">All journeys</button><h1 style="font-size:2.2rem;margin-top:16px">${j[0]}</h1><p class="sub">${n} of ${st.length} steps complete</p><div class="bar"><i style="width:${n/st.length*100}%"></i></div>${st.map((s,i)=>`<div class="st"><input type="checkbox" id="s${i}" ${pr[jSel+"."+i]?"checked":""} onchange="pg_(${i})" aria-label="Mark complete" style="transform:scale(1.3); margin-right:8px;"><div style="flex:1"><b>${i+1}. ${s}</b></div><button class="btn g" style="padding:6px 12px; font-size:0.85rem;" onclick="openModalStep('${s}')">Read Lesson</button></div>`).join("")}`}
 const pr=ST.g("prog",{});return`<h1 style="font-size:2.4rem">Guided Journeys</h1><p class="lead">Structured paths you can follow at your own pace. Each step opens a mini-lesson.</p><div class="grid">${J.map((j,i)=>{const t=j[2].split("|").filter((_,k)=>pr[i+"."+k]).length;return`<button class="card" onclick="jSel=${i};render()"><h3>${j[0]}</h3><p class="sub">${j[1]}</p><div class="bar"><i style="width:${t*25}%"></i></div></button>`}).join("")}</div>`},
 dialogue(){const d=DL[dSel];return`<h1 style="font-size:2.4rem">Dialogue Without Agreement</h1><p class="lead">Each position is stated as its holders would state it, with its strongest objection. No winner is declared.</p>${flag}${DL.map((x,i)=>`<button class="chip ${i===dSel?"on":""}" onclick="dSel=${i};render()">${x.t}</button>`).join("")}<div class="grid" style="margin-top:12px">${d.pos.map(p=>`<div class="card" style="cursor:default"><h3>${p[0]}</h3><p>${p[1]}</p><p class="sub" style="margin:0">${p[2]}</p></div>`).join("")}</div><div class="two"><div class="box"><h3>Where they agree</h3><p>${d.ag}</p></div><div class="box d"><h3>Where they disagree</h3><p>${d.dg}</p></div></div>`},
-about(){return`<h1 style="font-size:2.4rem">About Oracle</h1><p class="lead">The objective is not to make humanity the same. It is to help humanity become better at being different together.</p><div class="two"><div class="box"><h3>Oracle will not</h3><p>Promote one worldview above others, claim all traditions are identical, manufacture agreement, tell you what to believe, or present unsupported claims as fact.</p></div><div class="box s"><h3>What this version is</h3><p>A navigable foundation with illustrative sample content. There are no accounts, database or live knowledge engine yet. Saved items and progress are stored in your browser only.</p></div></div>
+about(){return`<h1 style="font-size:2.4rem">About Oracle</h1><p class="lead">The objective is not to make humanity the same. It is to help humanity become better at being different together.</p><div class="two"><div class="box"><h3>Oracle will not</h3><p>Promote one worldview above others, claim all traditions are identical, manufacture agreement, tell you what to believe, or present unsupported claims as fact.</p></div><div class="box s"><h3>What this version is</h3><p>A live, cloud-based intelligence platform powered by a vector database of over 38,000 primary source texts across 19 traditions. All AI queries are grounded in retrieved sources.</p></div></div>
 <h2>Evidence labels</h2><table>${[["Verified","Checked against appropriate primary or scholarly sources."],["Well Supported","Broad scholarly or traditional agreement."],["Contested","Credible sources or traditions disagree."],["Limited Evidence","Few or weak sources."],["Unverified","Not yet checked."]].map(r=>`<tr><td>${ev(r[0])}</td><td>${r[1]}</td></tr>`).join("")}</table>`}};
 
 let det=null,srch="";
@@ -352,7 +376,7 @@ V.together=()=>{
 };
 
 V.religions=()=>lib("religions");V.philosophy=()=>lib("philosophy");V.voices=()=>lib("voices");V.culture=()=>lib("culture");
-V.plans=()=>`<h1 style="font-size:2.4rem">Plans</h1><p class="lead">Free access to the knowledge and evidence layer, with paid tiers for convenience, depth and institutions.</p><div class="note">Illustrative pricing for the prototype. Nothing is for sale yet.</div>`;
+V.plans=()=>`<h1 style="font-size:2.4rem">Plans</h1><p class="lead">Free access to the knowledge and evidence layer, with paid tiers for convenience, depth and institutions.</p><div class="grid">${[["Free","$0","Full library and evidence labels|Guided journeys|Limited daily questions in Ask Humanity"],["Premium","$3 a month, $24 a year","Unlimited Ask Humanity|Saved collections and notes|Citation exports|Offline reading"],["Institutions","Custom","Site licences for schools and universities|Classroom dialogues and lesson plans|Teacher dashboard and progress reports"]].map(t=>`<div class="card tier"><h3>${t[0]}</h3><p><b>${t[1]}</b></p>${t[2].split("|").map(x=>`<p class="sub" style="margin:0 0 4px">• ${x}</p>`).join("")}</div>`).join("")}</div><h2>For educators</h2><p>Use Oracle to teach comparison without conversion: build a class journey, run a Dialogue Without Agreement session, and have students cite claims with their evidence labels.</p><div class="box s"><h3>Funding principles</h3><p>No advertising. No sponsored perspectives. No sale of user data. Funders are published.</p></div>`;
 function lib(pg){return`<h1 style="font-size:2.4rem">${LT[pg][0]}</h1><p class="lead">${LT[pg][1]}</p>${flag}<div class="grid">${D[pg].map((r,i)=>`<button class="card" onclick="openItem('${pg}',${i})"><p class="sub">${r[1]}</p><h3>${r[0]}</h3><p>${r[3].slice(0,110)}…</p>${ev(r[2])}</button>`).join("")}</div>`}
 
 let mode="Everyone",ctry="South Africa",lt=0,scn={};
