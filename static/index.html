@@ -67,6 +67,7 @@ summary{font-weight:600;color:var(--ac)}
 </div>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const EC={"Verified":"ok","Well Supported":"ok","Contested":"wn","Limited Evidence":"wn","Unverified":"bd"},ev=e=>`<span class="ev ${EC[e]}">${e}</span>`;
 const tg=()=>{const r=document.documentElement,d=getComputedStyle(r).colorScheme.includes("dark");r.dataset.theme=d?"light":"dark"};
 const PG=[["home","Home"],["ask","Ask Humanity"],["learn","Learning Hub"],["interfaith","Interfaith & Blended"],["questions","Question Explorer"],["perspectives","Explore Perspectives"],["map","Connections"],["religions","Religions & Traditions"],["philosophy","Philosophy & Ideas"],["voices","Voices of Wisdom"],["culture","Culture & Human Knowledge"],["together","Living Together"],["journeys","Guided Journeys"],["dialogue","Dialogue Without Agreement"],["plans","Plans"],["about","About Oracle"]];
 
