@@ -67,6 +67,7 @@ summary{font-weight:600;color:var(--ac)}
 </div>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ST={g(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const EC={"Verified":"ok","Well Supported":"ok","Contested":"wn","Limited Evidence":"wn","Unverified":"bd"},ev=e=>`<span class="ev ${EC[e]}">${e}</span>`;
 const tg=()=>{const r=document.documentElement,d=getComputedStyle(r).colorScheme.includes("dark");r.dataset.theme=d?"light":"dark"};
 const PG=[["home","Home"],["ask","Ask Humanity"],["learn","Learning Hub"],["interfaith","Interfaith & Blended"],["questions","Question Explorer"],["perspectives","Explore Perspectives"],["map","Connections"],["religions","Religions & Traditions"],["philosophy","Philosophy & Ideas"],["voices","Voices of Wisdom"],["culture","Culture & Human Knowledge"],["together","Living Together"],["journeys","Guided Journeys"],["dialogue","Dialogue Without Agreement"],["plans","Plans"],["about","About Oracle"]];
@@ -149,6 +150,7 @@ let qSel=null,cat="All",pT=0,pOff={},dSel=0,jSel=null,pend=null,thread=[];
 let tutorialData=null;
 
 const ALL=[...Q.filter(x=>x.intro).map(x=>({k:"Question",n:x.q,t:x.intro+x.per.map(p=>p.join(" ")).join(" "),s:x.intro,e:x.ev,f:`openQ(${x.id})`})),...Object.entries(D).flatMap(([pg,a])=>a.map((r,i)=>({k:LT[pg][0],n:r[0],t:r.join(" "),s:r[3],e:r[2],f:`openItem('${pg}',${i})`}))),...PT.map((p,i)=>({k:"Perspectives",n:p.t,t:p.tr.map(x=>x.join(" ")).join(" "),s:p.sim,e:"Contested",f:`pT=${i};location.hash='perspectives'`}))];
+const SW="what why how the and are does that this with about from which there can have for you into".split(" ");
 
 function toggleAll(state){document.querySelectorAll('.faith-check').forEach(cb=>cb.checked=state)}
 
