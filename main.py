@@ -12,7 +12,7 @@ import json
 load_dotenv()
 from system_prompt import SYSTEM_PROMPT
 
-app = FastAPI(title="ORACLE Backend", version="6.3.1")
+app = FastAPI(title="ORACLE Backend", version="6.4.0")
 
 print("Initializing Cloud Database and FastEmbed...")
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
@@ -30,6 +30,9 @@ class InterfaithRequest(BaseModel):
     faith_b: str
     topic: str
     custom_question: Optional[str] = None
+
+class LessonRequest(BaseModel):
+    topic: str
 
 def get_embedding(text: str) -> list:
     embeddings = list(embedder.embed([text]))
@@ -110,6 +113,19 @@ def tutorial(req: LearnRequest):
         messages=[{"role": "user", "content": prompt}],
     )
     return json.loads(resp.choices[0].message.content)
+
+@app.post("/api/lesson")
+def lesson(req: LessonRequest):
+    from openai import OpenAI
+    client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=os.getenv("GROQ_API_KEY"))
+    
+    prompt = f"You are an expert educator. Write a concise, engaging 2-paragraph mini-lesson on the following topic: {req.topic}. Do not use markdown. Just return plain text."
+    
+    resp = client.chat.completions.create(
+        model="openai/gpt-oss-120b", temperature=0.4,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return {"content": resp.choices[0].message.content}
 
 @app.post("/api/interfaith")
 def interfaith(req: InterfaithRequest):

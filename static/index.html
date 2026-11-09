@@ -233,8 +233,30 @@ function sendCh(i,k){const t=$("#ch").value.trim();if(!t)return;const c=ST.g("ch
 function sv_(id){const s=ST.g("saved",[]),i=s.indexOf(id);i<0?s.push(id):s.splice(i,1);ST.s("saved",s);render()}
 function pg_(i){const p=ST.g("prog",{}),k=jSel+"."+i;p[k]=!p[k];ST.s("prog",p);render()}
 
-function openModalStep(step) {
-  alert("Opening lesson for: " + step + ". (This feature will be built in the next update.)");
+async function openModalStep(step) {
+  const modalHtml = `
+    <div class="ov" onclick="this.remove()">
+      <div class="md" onclick="event.stopPropagation()">
+        <h2>${step}</h2>
+        <div id="modal-content"><p class="sub">Generating mini-lesson...</p></div>
+        <p style="margin-top:20px;"><button class="btn g" onclick="this.closest('.ov').remove()">Close</button></p>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  const contentDiv = document.getElementById('modal-content');
+
+  try {
+    const res = await fetch('/api/lesson', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({topic: step})
+    });
+    const data = await res.json();
+    contentDiv.innerHTML = `<p class="lead">${data.content}</p>`;
+  } catch (err) {
+    contentDiv.innerHTML = `<p style="color:var(--bd)">Error generating lesson: ${err.message}</p>`;
+  }
 }
 
 const flag=`<div class="note"><b>Illustrative sample content.</b> Nothing here has been checked against primary sources. Evidence labels are provisional editorial estimates.</div>`;
