@@ -18,6 +18,7 @@ h1{font-size:clamp(2.3rem,6.5vw,4.2rem);letter-spacing:-.02em}h2{font-size:1.9re
 header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--ln)}
 .top{display:flex;align-items:center;gap:14px;padding:10px 20px;max-width:1400px;margin:0 auto;flex-wrap:wrap}
 .logo{font-size:1.7rem;letter-spacing:.14em;cursor:pointer;margin:0}
+.tg{color:var(--mu);font-size:.85rem;flex:1}
 .layout{display:flex;max-width:1400px;margin:0 auto;align-items:flex-start}
 .sidebar{width:260px;flex-shrink:0;border-right:1px solid var(--ln);padding:20px 14px;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto}
 nav{display:flex;flex-direction:column;gap:4px}
@@ -61,6 +62,7 @@ summary{font-weight:600;color:var(--ac)}
   <div class="top">
     <h2 class="logo" onclick="location.hash='home'">Oracle</h2>
     <span class="tg">Unity without Uniformity</span>
+    <button id="install-btn" class="th" style="display:none; background:var(--ac); color:var(--bg); border:0; padding:4px 12px; border-radius:8px; cursor:pointer; font-weight:600; margin-right:10px;">📥 Install App</button>
     <button class="th" onclick="tg()">◐</button>
   </div>
 </header>
@@ -343,6 +345,33 @@ function render(){
   }
 }
 addEventListener("hashchange",()=>{render();scrollTo(0,0)});render();
+
+// PWA Install Logic
+let deferredPrompt;
+const installBtn = document.getElementById('install-btn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if(installBtn) installBtn.style.display = 'inline-block';
+});
+
+if (installBtn) {
+  installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        installBtn.style.display = 'none';
+      }
+      deferredPrompt = null;
+    }
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  if(installBtn) installBtn.style.display = 'none';
+});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
