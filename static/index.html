@@ -56,6 +56,18 @@ table{border-collapse:collapse;width:100%;font-size:.88rem;display:block;overflo
 @media(max-width:600px){.interfaith-grid{grid-template-columns:1fr}}
 .ov{position:fixed;inset:0;background:rgba(13,22,28,0.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:20;display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn 0.2s ease-out}
 .md{background:var(--bg);max-width:600px;width:100%;max-height:85vh;overflow-y:auto;padding:30px;border-radius:16px;box-shadow:0 24px 48px rgba(0,0,0,0.2);animation:slideUp 0.3s cubic-bezier(0.16,1,0.3,1)}
+
+/* Modern Accordion Styling */
+details{border:1px solid var(--ln);border-radius:8px;padding:12px 16px;margin-bottom:10px;background:var(--cd);cursor:pointer;transition:background 0.2s}
+details:hover{background:var(--tint)}
+summary{list-style:none;font-weight:600;color:var(--ink);display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{
+  content:'';width:8px;height:8px;border-right:2px solid var(--ac);border-bottom:2px solid var(--ac);
+  transform:rotate(45deg);transition:transform 0.2s;margin-right:4px;
+}
+details[open] summary::after{transform:rotate(-135deg)}
+
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 </style>
@@ -157,10 +169,14 @@ const DL=[{t:"Can morality exist without God?",pos:[["Theistic grounding","Objec
 let qSel=null,cat="All",pT=0,pOff={},dSel=0,jSel=null,pend=null,thread=[];
 let tutorialData=null;
 
+// Global state for selected faiths
+let selectedFaiths = [];
+
 const ALL=[...Q.filter(x=>x.intro).map(x=>({k:"Question",n:x.q,t:x.intro+x.per.map(p=>p.join(" ")).join(" "),s:x.intro,e:x.ev,f:`openQ(${x.id})`})),...Object.entries(D).flatMap(([pg,a])=>a.map((r,i)=>({k:LT[pg][0],n:r[0],t:r.join(" "),s:r[3],e:r[2],f:`openItem('${pg}',${i})`}))),...PT.map((p,i)=>({k:"Perspectives",n:p.t,t:p.tr.map(x=>x.join(" ")).join(" "),s:p.sim,e:"Contested",f:`pT=${i};location.hash='perspectives'`}))];
 const SW="what why how the and are does that this with about from which there can have for you into".split(" ");
 
 function toggleAll(state){
+  selectedFaiths = state ? [...RELIGIONS] : [];
   document.querySelectorAll('.faith-check').forEach(cb=>{
     cb.checked=state;
     cb.parentElement.classList.toggle('selected', state);
@@ -169,27 +185,32 @@ function toggleAll(state){
 
 document.addEventListener('change', (e) => {
   if (e.target.classList.contains('faith-check')) {
+    const val = e.target.value;
+    if (e.target.checked) {
+      if (!selectedFaiths.includes(val)) selectedFaiths.push(val);
+    } else {
+      selectedFaiths = selectedFaiths.filter(f => f !== val);
+    }
     e.target.parentElement.classList.toggle('selected', e.target.checked);
   }
 });
 
 async function doAsk(){
   const q=$("#qi").value.trim();if(!q)return false;
-  const selected=Array.from(document.querySelectorAll('.faith-check:checked')).map(cb=>cb.value);
-  if(selected.length===0){alert("Please select at least one tradition.");return;}
+  if(selectedFaiths.length===0){alert("Please select at least one tradition.");return;}
   thread.push({q,h:'<p class="sub">Searching the Oracle AI database...</p>'});render();
   try{
-    const res=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,faiths:selected})});
+    const res=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,faiths:selectedFaiths})});
     if(!res.ok)throw new Error("Backend offline");
     const data=await res.json();
     let html=`<div class="box s"><h3>Universal thread</h3><p>${data.universal_thread||"No shared thread found."}</p></div>`;
     if(data.aligned_verses&&data.aligned_verses.length>0){
-      html+=`<details><summary>📖 View Aligned Verses (${data.aligned_verses.length})</summary>`;
+      html+=`<details><summary>View Aligned Verses (${data.aligned_verses.length})</summary>`;
       data.aligned_verses.forEach(v=>{html+=`<p class="verse-item"><b>${v.faith} (${v.citation}):</b> “${v.text}”</p>`});
       html+=`</details>`;
     }
     if(data.distinct_rationales&&data.distinct_rationales.length>0){
-      html+=`<details><summary>🧠 View Distinct Rationales</summary>`;
+      html+=`<details><summary>View Distinct Rationales</summary>`;
       data.distinct_rationales.forEach(r=>{html+=`<p class="verse-item"><b>${r.faith}:</b> ${r.theological_logic}</p>`});
       html+=`</details>`;
     }
@@ -210,7 +231,7 @@ async function askInterfaith(){
     html+=`<div class="box"><h3>${faith_b} Perspective</h3><p>${data.faith_b_perspective}</p></div>`;
     html+=`<div class="box s"><h3>Shared Common Ground</h3><p>${data.common_ground}</p></div>`;
     html+=`<div class="box"><h3>Practical Advice</h3><p>${data.practical_advice.replace(/\n/g,'<br>')}</p></div>`;
-    if(data.verses&&data.verses.length>0){html+=`<details><summary>📖 View Primary Texts Used</summary>`;data.verses.forEach(v=>{html+=`<p class="verse-item"><b>${v.faith} (${v.citation}):</b> “${v.text}”</p>`});html+=`</details>`}
+    if(data.verses&&data.verses.length>0){html+=`<details><summary>View Primary Texts Used</summary>`;data.verses.forEach(v=>{html+=`<p class="verse-item"><b>${v.faith} (${v.citation}):</b> “${v.text}”</p>`});html+=`</details>`}
     html+=`</div>`;out.innerHTML=html;
   }catch(e){out.innerHTML=`<p style="color:var(--bd)">Error: ${e.message}</p>`}
 }
@@ -221,11 +242,11 @@ async function loadTutorial(faith){
   try{
     const res=await fetch("/api/tutorial",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({faith})});
     const data=await res.json();tutorialData=data;
-    let html=`<h2>Learning ${data.tradition}</h2><p class="lead">${data.description}</p><h3>📚 Modules</h3>`;
+    let html=`<h2>Learning ${data.tradition}</h2><p class="lead">${data.description}</p><h3>Modules</h3>`;
     data.modules.forEach((mod,i)=>{html+=`<details><summary>Module ${i+1}: ${mod.title}</summary><p>${mod.content}</p></details>`});
-    html+=`<h3>❓ Frequently Asked Questions</h3>`;
+    html+=`<h3>Frequently Asked Questions</h3>`;
     data.faqs.forEach(faq=>{html+=`<details><summary>${faq.question}</summary><p>${faq.answer}</p></details>`});
-    html+=`<h3>📝 Proficiency Quiz (10 Questions)</h3><form id="quiz-form" onsubmit="submitQuiz(event)">`;
+    html+=`<h3>Proficiency Quiz (10 Questions)</h3><form id="quiz-form" onsubmit="submitQuiz(event)">`;
     data.quiz.forEach((q,i)=>{html+=`<div class="card" style="cursor:default;"><p><b>Q${i+1}: ${q.question}</b></p>`;q.options.forEach((opt,j)=>{html+=`<label class="quiz-option"><input type="radio" name="q${i}" value="${j}" required> ${opt}</label>`});html+=`</div>`});
     html+=`<button type="submit" class="btn" style="margin-top:20px;">Submit Quiz</button></form><div id="quiz-result" style="margin-top:20px;"></div>`;
     out.innerHTML=html;
@@ -243,7 +264,6 @@ function submitQuiz(e){
 function openQ(id){qSel=id;if(location.hash==="#questions")render();else location.hash="questions"}
 function openItem(pg,i){det={pg,i};location.hash==="#detail"?render():location.hash="detail"}
 
-// FIXED: Removed "Not yet linked" and made the Submit button functional
 function claim(i,k){
   const q=Q[i],p=q.per[k],o=document.createElement("div");o.className="ov";o.onclick=()=>o.remove();
   o.innerHTML=`<div class="md" onclick="event.stopPropagation()" role="dialog">
@@ -307,7 +327,7 @@ home(){return`<section class="hero"><div><h1>The World’s Knowledge. Humanity�
 <div class="note" style="border-left-color:var(--ac)"><b>!ke e: /xarra //ke</b> is South Africa’s national motto, in the /Xam language of the Khoisan peoples. It means diverse people unite. Oracle is built on that idea: people who are different, understanding one another and choosing to live together.</div>${flag}<h2>Knowledge domains</h2><div class="grid">${Object.entries(LT).map(([k,v])=>`<button class="card" onclick="location.hash='${k}'"><h3>${v[0]}</h3><p>${v[1]}</p></button>`).join("")}<button class="card" onclick="location.hash='perspectives'"><h3>Explore Perspectives</h3><p>Compare how traditions answer the same question.</p></button><button class="card" onclick="location.hash='dialogue'"><h3>Dialogue Without Agreement</h3><p>Difficult questions with no forced winner.</p></button></div>
 <h2>Human questions</h2>${["Purpose","Suffering","Love","Justice","Morality","Consciousness","Freedom","Death","Dignity","Relationships","Power","Belonging"].map(x=>`<button class="chip" onclick="location.hash='ask'">${x}</button>`).join("")}
 <h2>Featured explorations</h2><div class="grid">${[3,4,0].map(i=>`<button class="card" onclick="openQ(${i})"><p class="sub">${Q[i].cat}</p><h3>${Q[i].q}</h3>${ev(Q[i].ev)}</button>`).join("")}</div>`},
-ask(){return`<h1 style="font-size:2.4rem">Ask Humanity</h1><p class="lead">Select the traditions you want to compare, and ask a question.</p><div class="note"><b>Select Traditions to Compare:</b></div><div class="action-bar"><button class="btn g" onclick="toggleAll(true)">✓ Select All</button><button class="btn g" onclick="toggleAll(false)">✗ Deselect All</button></div><div class="checkbox-grid" id="checkbox-container">${RELIGIONS.map(f=>`<label class="custom-checkbox ${f?"selected":""}"><input type="checkbox" class="faith-check" value="${f}" checked> <div class="check-icon"></div> ${f}</label>`).join("")}</div><div style="margin-top:30px;margin-bottom:30px;">${thread.map(t=>`<div class="q">${esc(t.q)}</div>${t.h}`).join("")}</div><div class="card" style="cursor:default;"><textarea id="qi" placeholder="For example: What does it say about the nature of suffering?"></textarea><button class="btn" onclick="doAsk()">Ask AI</button></div>`},
+ask(){return`<h1 style="font-size:2.4rem">Ask Humanity</h1><p class="lead">Select the traditions you want to compare, and ask a question.</p><div class="note"><b>Select Traditions to Compare:</b></div><div class="action-bar"><button class="btn g" onclick="toggleAll(true)">✓ Select All</button><button class="btn g" onclick="toggleAll(false)">✗ Deselect All</button></div><div class="checkbox-grid" id="checkbox-container">${RELIGIONS.map(f=>{const isSel=selectedFaiths.includes(f);return`<label class="custom-checkbox ${isSel?"selected":""}"><input type="checkbox" class="faith-check" value="${f}" ${isSel?"checked":""}> <div class="check-icon"></div> ${f}</label>`}).join("")}</div><div style="margin-top:30px;margin-bottom:30px;">${thread.map(t=>`<div class="q">${esc(t.q)}</div>${t.h}`).join("")}</div><div class="card" style="cursor:default;"><textarea id="qi" placeholder="For example: What does it say about the nature of suffering?"></textarea><button class="btn" onclick="doAsk()">Ask AI</button></div>`},
 learn(){return`<h1 style="font-size:2.4rem">Learning Hub</h1><p class="lead">Select a tradition to generate a full tutorial, FAQs, and a 10-question quiz.</p><select class="dropdown" onchange="loadTutorial(this.value)"><option value="">-- Select a tradition --</option>${RELIGIONS.map(f=>`<option value="${f}">${f}</option>`).join("")}</select><div id="tutorial-out"></div>`},
 interfaith(){return`<h1 style="font-size:2.4rem">Interfaith & Blended</h1><p class="lead">Navigate the beautiful complexity of two traditions meeting.</p><div class="card" style="cursor:default;"><div class="interfaith-grid"><div><label class="sub">Tradition A</label><select class="dropdown" id="faith-a" style="max-width:100%;">${RELIGIONS.map(f=>`<option value="${f}">${f}</option>`).join("")}</select></div><div><label class="sub">Tradition B</label><select class="dropdown" id="faith-b" style="max-width:100%;">${RELIGIONS.map(f=>`<option value="${f}">${f}</option>`).join("")}</select></div></div><label class="sub">Select a common friction point:</label><select class="dropdown" id="topic" style="max-width:100%;">${TOPICS.map(t=>`<option value="${t}">${t}</option>`).join("")}</select><label class="sub" style="margin-top:10px;display:block;">Or ask a specific question about your situation:</label><textarea id="custom-interfaith-q" placeholder="e.g., My Muslim mother wants me to fast, but my Catholic father thinks it's unhealthy. How do I navigate this?"></textarea><button class="btn" onclick="askInterfaith()">Generate Guidance</button></div><div id="interfaith-out" style="margin-top:30px;"></div>`},
 questions(){const sv=ST.g("saved",[]);if(qSel!==null){const q=Q[qSel];if(!q.intro)return`<button class="btn g" onclick="qSel=null;render()">Back</button><h2>${q.q}</h2><div class="note">A structured record for this question has not been written yet.</div>`;return`<button class="btn g" onclick="qSel=null;render()">Back</button><p class="sub" style="margin-top:16px">${q.cat}</p><h1 style="font-size:2.3rem">${q.q}</h1><p>${ev(q.ev)} <button class="chip" onclick="sv_(${q.id})">${sv.includes(q.id)?"★ Saved":"☆ Save"}</button></p>${flag}<p class="lead">${q.intro}</p><div class="box s"><h3>Historical and cultural context</h3><p>${q.ctx}</p></div><h2 style="margin-top:.8em">Perspectives</h2><div class="grid">${q.per.map((p,k)=>`<button class="card" onclick="claim(${q.id},${k})"><h3>${p[0]}</h3><p style="margin:0 0 6px">${p[1]}</p><span class="sub">Inspect claim →</span></button>`).join("")}</div><div class="two"><div class="box"><h3>Where they converge</h3><p>${q.con}</p></div><div class="box d"><h3>Where they genuinely differ</h3><p>${q.dif}</p></div></div><h3>Related questions</h3>${q.rel.map(i=>`<button class="chip" onclick="openQ(${i})">${Q[i].q}</button>`).join("")}`}return`<h1 style="font-size:2.4rem">Question Explorer</h1><p class="lead">Choose a category or a question to open a structured exploration.</p>${flag}${["All",...CATS].map(c=>`<button class="chip ${c===cat?"on":""}" onclick="cat='${c}';render()">${c}</button>`).join("")}${sv.length?`<h3 style="margin-top:14px">Saved</h3>`+sv.map(i=>`<button class="chip" onclick="openQ(${i})">★ ${Q[i].q}</button>`).join(""):""}<div class="grid" style="margin-top:20px">${Q.filter(q=>cat==="All"||q.cat===cat).map(q=>`<button class="card" onclick="openQ(${q.id})"><p class="sub">${q.cat}</p><h3>${q.q}</h3>${q.intro?ev(q.ev):`<span class="sub">Record not yet written</span>`}</button>`).join("")}</div>`},
